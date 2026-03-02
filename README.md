@@ -16,7 +16,7 @@ When a PDF from the gateway arrives, the brain follows the pipeline:
     1. Storage: It saves a physical copy of the PDF into the uploads folder.
     2. Parsing: It uses PyPDFLoader to "rip" the text out of the pages.
     3. Chunking: AI cannot read a 50-paged document all at once. The brain slices the text into s,all, overlapping snippets of about 1,000 caracters each.
-4. Embedding: This is the ,agic. It sends each chunk through a ,athematical model (all-MiniLM-L6-v2). This turns words into vectors - long lists of numbers that represent themwaning of the text.
+4. Embedding: This is the magic. It sends each chunk through a ,athematical model (all-MiniLM-L6-v2). This turns words into vectors - long lists of numbers that represent themwaning of the text.
 
 3. The Vault
 This is your database, it stores the vectors.
