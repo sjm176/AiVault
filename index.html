@@ -47,16 +47,37 @@
         }
 
         async function ask() {
-            const q = document.getElementById('queryInput').value;
-            toggle('ask', true);
+    const q = document.getElementById('queryInput').value;
+    if (!q) return alert("Enter a question!");
+    
+    const outputDiv = document.getElementById('output');
+    outputDiv.style.display = 'block';
+    outputDiv.innerText = "Thinking..."; // Show immediate feedback
+    toggle('ask', true);
 
-            const res = await fetch(`${API}/chat?query=${encodeURIComponent(q)}`, { method: 'POST' });
-            const data = await res.json();
-            
-            document.getElementById('output').style.display = 'block';
-            document.getElementById('output').innerText = data.answer;
-            toggle('ask', false);
+    try {
+        const res = await fetch(`${API}/chat?query=${encodeURIComponent(q)}`, { method: 'POST' });
+        let data = await res.json();
+        
+        // If 'data' is still a string (Double Serialization), parse it again
+        if (typeof data === 'string') {
+            data = JSON.parse(data);
         }
+
+        console.log("Final Decoded Data:", data); // Check your F12 Console for this!
+
+        if (data && data.answer) {
+            outputDiv.innerText = data.answer;
+        } else {
+            outputDiv.innerText = "Error: The Brain returned data, but no 'answer' property was found.";
+        }
+    } catch (err) {
+        outputDiv.innerText = "Error: Could not connect to the Gateway. Is the .NET app running?";
+        console.error(err);
+    } finally {
+        toggle('ask', false);
+    }
+}
 
         function toggle(type, loading) {
             document.getElementById(`${type}Btn`).disabled = loading;

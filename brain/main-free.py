@@ -47,20 +47,22 @@ async def ingest_pdf(file: UploadFile = File(...)):
 
 @app.post("/ask")
 async def ask_question(question: str = Form(...)):
-    # Connect to the local vector store
     vectorstore = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    
+    # Increase k from 3 to 5 (gives the AI more context to find notes)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
-    # Modern 2026 RAG Prompt
-    template = """Answer the question based ONLY on the following context:
-    {context}
+    # Updated Template to force a response
+    template = """You are a helpful assistant. Use the following pieces of context to answer the question. 
+    If you don't find the specific answer, summarize the most important points for the user.
 
+    Context: {context}
     Question: {question}
     
-    Helpful Answer:"""
+    Helpful Answer (If no info found, say 'I couldn't find specific notes, but here is a summary'):"""
+    
     prompt = ChatPromptTemplate.from_template(template)
 
-    # LCEL Chain (No 'langchain.chains' needed)
     rag_chain = (
         {"context": retriever, "question": RunnablePassthrough()}
         | prompt
@@ -68,8 +70,12 @@ async def ask_question(question: str = Form(...)):
         | StrOutputParser()
     )
 
-    response = rag_chain.invoke(question)
-    return {"answer": response}
+    try:
+        response = rag_chain.invoke(question)
+        # Ensure we ALWAYS return the 'answer' key, even if the AI is silent
+        return {"answer": response or "The AI was unable to generate notes for this specific query."}
+    except Exception as e:
+        return {"answer": f"Brain Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
