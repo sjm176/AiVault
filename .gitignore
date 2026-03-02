@@ -1,0 +1,15 @@
+# Python stuff
+venv/
+__pycache__/
+*.py[cod]
+.env
+
+# .NET stuff
+bin/
+obj/
+*.user
+*.suo
+
+# Project specific
+db_vault/
+uploads/
