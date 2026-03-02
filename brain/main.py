@@ -11,46 +11,59 @@ import shutil
 
 app = FastAPI()
 
-# Setup paths and LLM
+# --- CONFIGURATION ---
+# Important: This uses a DIFFERENT folder than the free version 
+# to avoid mixing OpenAI math with local math.
 UPLOAD_DIR = "uploads"
-DB_DIR = "db_vault"
+DB_DIR = "db_vault" 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# 1. PAID EMBEDDINGS (Requires OPENAI_API_KEY in your system environment)
 embeddings = OpenAIEmbeddings()
+
+# 2. PAID LLM (GPT-4o)
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
 @app.post("/ingest")
 async def ingest_pdf(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    # Save physical file
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    # Process PDF
     loader = PyPDFLoader(file_path)
     docs = loader.load()
     
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     splits = text_splitter.split_documents(docs)
     
-    # Store in Chroma
-    Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=DB_DIR)
+    # Store in Chroma (Paid Vault)
+    Chroma.from_documents(
+        documents=splits, 
+        embedding=embeddings, 
+        persist_directory=DB_DIR
+    )
+    
     return {"status": "Success", "filename": file.filename}
 
 @app.post("/ask")
 async def ask_question(question: str = Form(...)):
-    # Load the existing database
+    # Load the Paid Vault
     vectorstore = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
     retriever = vectorstore.as_retriever()
 
-    # Define the Modern Prompt
     template = """Answer the question based ONLY on the following context:
     {context}
 
     Question: {question}
-    """
+    
+    Helpful Answer:"""
+    
     prompt = ChatPromptTemplate.from_template(template)
 
-    # BUILD THE CHAIN WITHOUT 'langchain.chains'
-    # This uses the Pipe operator (|) to flow data
+    # RAG Chain using the Pipe (|) operator
     rag_chain = (
         {"context": retriever, "question": RunnablePassthrough()}
         | prompt
@@ -58,9 +71,13 @@ async def ask_question(question: str = Form(...)):
         | StrOutputParser()
     )
 
-    response = rag_chain.invoke(question)
-    return {"answer": response}
+    try:
+        response = rag_chain.invoke(question)
+        return {"answer": response}
+    except Exception as e:
+        return {"answer": f"OpenAI Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
+    print("--- AiVault PAID Brain Starting (OpenAI) ---")
     uvicorn.run(app, host="0.0.0.0", port=8000)

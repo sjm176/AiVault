@@ -2,6 +2,7 @@
 AiVault with .NET Gateway and Local Python Brain
 
 Problem: Not being able to utilise AI when processing sensitive data.
+
 Solution: Have a local brain that processes a PDF document.
 
 1. Gateway
@@ -25,3 +26,4 @@ The Map: Think of it like a 3D map of idead. Chunks about "Refund POlicies" are 
 
 4. The Intelligence (Chosen AI model/LLM)
 For a free developing version I installed Ollama which is locally ran but this should work if you have paid for OpenAI and have the OPENAI_API_KEY stored as an system variable.
+    Note: to run the free version run "python main-free.py" and for the openAI version run "python main.py".
